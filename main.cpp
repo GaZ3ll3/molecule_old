@@ -4,7 +4,7 @@
 int main() {
     vector<point> s;
     vector<point> t;
-    int N = 4096;
+    int N = 1024;
     for (int i = 0; i < N; ++i) {
         double phi = M_PI * (double)rand() / RAND_MAX;
         for (int j = 0; j < N; ++j) {
@@ -38,7 +38,7 @@ int main() {
         else return 1.0/d;
         };
 
-    bbfmm.initialize(2, s, t, &c[0], N * N , N * N, 80, 10);
+    bbfmm.initialize(2, s, t, c, N * N , N * N, 80, 10);
 
     MatrixXd potentialMatrix;
     bbfmm.run(potentialMatrix);
