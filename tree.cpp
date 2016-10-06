@@ -3,10 +3,12 @@
 //
 
 #include "tree.h"
-#include "node.h"
-#include <iostream>
+
+#include <fstream>
 #include <cassert>
 #include <queue>
+
+
 
 void tree::populate(vector<point> &_source, vector<point> &_target, int _nSource, int _nTarget, int _rank,
                     int _maxLevel) {
@@ -33,8 +35,10 @@ void tree::populate(vector<point> &_source, vector<point> &_target, int _nSource
         dict[root].targetIndex[i] = i;
     }
 
-    assignChildren(root, _maxLevel);
-    buildTree();
+
+    RUN("initialization", assignChildren(root, _maxLevel));
+    RUN("assign lists"  , buildTree());
+
 
 }
 
@@ -63,13 +67,13 @@ void tree::getCenterRadius(vector<point> &_source) {
 }
 
 void tree::assignChildren(int _id, int _maxLevel) {
+    /*
+     * when assigning children nodes, the points are not assigned due to storage.
+     *
+     * Now the limitation of nodes is around 2^24.
+     */
     assert(dict.size() > _id); // check if this node exists
     assert(root != -1); // check tree is non-empty
-
-    // assign targets
-    for (int i = 0; i < dict[_id].nTarget; ++i) {
-        dict[_id].target.push_back(targetTree[dict[_id].targetIndex[i]]);
-    }
 
     // check source
     if (dict[_id].nSource == 0) {
@@ -77,10 +81,6 @@ void tree::assignChildren(int _id, int _maxLevel) {
         dict[_id].isEmpty = true;
     }
     else {
-        for (int i = 0; i < dict[_id].nSource; ++i) {
-            dict[_id].source.push_back(sourceTree[dict[_id].sourceIndex[i]]);
-        }
-
         // divide
         if ((dict[_id].nSource <= rank) || (dict[_id].nLevel == _maxLevel)) {
             dict[_id].isLeaf = true;
@@ -105,6 +105,9 @@ void tree::assignChildren(int _id, int _maxLevel) {
                 dict[maxId].nTarget = 0;
             }
 
+            /*
+             * can be accelerated by **reduce**
+             */
             for (int i = 0; i < dict[_id].nSource; ++i) {
                 int index = dict[_id].sourceIndex[i];
                 int z_bit = sourceTree[index].z < dict[_id].center.z ? 0:1;
@@ -117,6 +120,9 @@ void tree::assignChildren(int _id, int _maxLevel) {
                 dict[childId].nSource += 1;
             }
 
+            /*
+             * can be accelerated by **reduce**
+             */
             for (int i = 0; i < dict[_id].nTarget; ++i) {
                 int index = dict[_id].targetIndex[i];
                 int z_bit = targetTree[index].z < dict[_id].center.z ? 0:1;
@@ -132,29 +138,22 @@ void tree::assignChildren(int _id, int _maxLevel) {
             for (int i = 0; i < 8; ++i) {
                 assignChildren(dict[_id].child[i], _maxLevel);
             }
-
         }
     }
 }
 
 void tree::buildTree() {
+    omp_set_num_threads(4);
     point min_p(dict[root].center.x - dict[root].radius.x,
                 dict[root].center.y - dict[root].radius.y,
                 dict[root].center.z - dict[root].radius.z);
     point max_p(dict[root].center.x + dict[root].radius.x,
                 dict[root].center.y + dict[root].radius.y,
                 dict[root].center.z + dict[root].radius.z);
-
-    std::queue<int> nq;
-    nq.push(root);
-    while(!nq.empty()) {
-        int frontId = nq.front();nq.pop();
-        buildNode(frontId, min_p, max_p);
-        if (!dict[frontId].isLeaf) {
-            for (int i = 0; i < 8; ++i) {
-                nq.push(dict[frontId].child[i]);
-            }
-        }
+    int i;
+#pragma omp parallel for private(i) shared(min_p, max_p) schedule(dynamic)
+    for (i = 0; i < dict.size(); ++i) {
+        buildNode(i, min_p, max_p);
     }
 }
 
@@ -176,6 +175,7 @@ void tree::buildNode(int _id, point &min_p, point &max_p) {
         double zs = pn.center.z - dz;
 
         point cur;
+
         for (int x_id = -2; x_id < 4; x_id++) {
             for (int y_id = -2; y_id < 4; y_id++) {
                 for (int z_id = -2; z_id < 4; z_id++) {
@@ -273,14 +273,36 @@ bool tree::isAdjacent(int _aId, int _bId) {
     double r_y = fabs(nA.radius.y + nB.radius.y);
     double r_z = fabs(nA.radius.z + nB.radius.z);
 
-    bool rdx = r_x >= diff_x - eps;
-    bool rdy = r_y >= diff_y - eps;
-    bool rdz = r_z >= diff_z - eps;
+    bool rdx = r_x >= diff_x - __eps;
+    bool rdy = r_y >= diff_y - __eps;
+    bool rdz = r_z >= diff_z - __eps;
 
-    bool x_adj = (fabs(diff_x - r_x) < eps) && (rdy || rdz);
-    bool y_adj = (fabs(diff_y - r_y) < eps) && (rdx || rdz);
-    bool z_adj = (fabs(diff_z - r_z) < eps) && (rdy || rdx);
+    bool x_adj = (fabs(diff_x - r_x) < __eps) && (rdy && rdz);
+    bool y_adj = (fabs(diff_y - r_y) < __eps) && (rdx && rdz);
+    bool z_adj = (fabs(diff_z - r_z) < __eps) && (rdy && rdx);
 
     return x_adj || y_adj || z_adj;
 
+}
+
+
+void tree::output(std::string file) {
+    std::ofstream file_stream(file);
+    if (file_stream.is_open()) {
+
+        for (int i = 0; i < dict.size(); ++i) {
+            file_stream << dict[i].center.x << " "
+                        << dict[i].center.y << " "
+                        << dict[i].center.z << " "
+                        << dict[i].radius.x << " "
+                        << dict[i].radius.y << " "
+                        << dict[i].radius.z << " "
+                        << dict[i].nVList << " " << dict[i].nXList << " " << dict[i].nUList <<" "<< dict[i].nWList <<"\n";
+        }
+
+        file_stream.close();
+    }
+    else {
+        std::cout << "cannot open file: " << file << std::endl;
+    }
 }

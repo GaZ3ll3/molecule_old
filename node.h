@@ -10,7 +10,7 @@
 #include <cmath>
 #include <Eigen/Dense>
 
-#define eps 1e-12
+#define __eps 1e-12
 
 using std::unordered_set;
 using std::vector;
@@ -32,7 +32,7 @@ public:
         return ( x <= a.x ) && ( y <= a.y ) && (z <= a.z);
     }
     bool operator==(const point& a) {
-        return (fabs(x - a.x) < eps) && (fabs(y - a.y) < eps) && (fabs(z - a.z) < eps);
+        return (fabs(x - a.x) < __eps) && (fabs(y - a.y) < __eps) && (fabs(z - a.z) < __eps);
     }
 };
 
@@ -62,9 +62,6 @@ public:
 
     vector<int> sourceIndex;
     vector<int> targetIndex;
-
-    vector<point> source;
-    vector<point> target;
 
     bool isLeaf;
     bool isEmpty;
@@ -104,6 +101,13 @@ public:
     /*
      *  some internal members
      */
+    vector<point> scaledCnode;
+    MatrixXd potential;
+    MatrixXd nodeCharge;
+    MatrixXd charge;
+    MatrixXd nodePotential;
+    MatrixXd R;
+    MatrixXd L;
 
 
 };

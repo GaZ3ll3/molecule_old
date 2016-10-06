@@ -6,8 +6,11 @@
 #define FMM_TREE_H
 
 #include "node.h"
+#include "measure.h"
+#include <chrono>
+#include "omp.h"
 
-class tree {
+class tree : public measure {
 public:
     vector<node> dict;
     int maxId;
@@ -33,12 +36,16 @@ public:
     }
 
     void populate(vector<point>& _source, vector<point>& _target, int _nSource, int _nTarget, int _rank, int _maxLevel);
+    void output(std::string file);
+
+protected:
     void getCenterRadius(vector<point>& _source);
     void assignChildren(int _id, int _maxLevel);
     void buildTree();
     void buildNode(int _id, point& min_p, point& max_p);
     int findNode(int _id, point& p);
     bool isAdjacent(int _aId, int _bId);
+
 };
 
 #endif //FMM_TREE_H
