@@ -4,7 +4,7 @@
 int main() {
     vector<point> s;
     vector<point> t;
-    int N = 2048;
+    int N = 1024;
     for (int i = 1; i < N; ++i) {
         double phi = M_PI * (double)rand() / RAND_MAX;
         for (int j = 0; j < N; ++j) {
