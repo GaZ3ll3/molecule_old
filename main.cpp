@@ -4,8 +4,8 @@
 int main() {
     vector<point> s;
     vector<point> t;
-    int N = 1024;
-    for (int i = 1; i < N; ++i) {
+    int N = 4096;
+    for (int i = 0; i < N; ++i) {
         double phi = M_PI * (double)rand() / RAND_MAX;
         for (int j = 0; j < N; ++j) {
             double theta = 2 * M_PI * (double)rand() / RAND_MAX;
@@ -14,7 +14,7 @@ int main() {
                               cos(phi)));
         }
     }
-    for (int i = 1; i < N; ++i) {
+    for (int i = 0; i < N; ++i) {
         double phi = M_PI * (double)rand() / RAND_MAX;
         for (int j = 0; j < N; ++j) {
             double theta = 2 * M_PI * (double)rand() / RAND_MAX;
@@ -24,7 +24,10 @@ int main() {
         }
     }
 
-    vector<double> c(N * N, 1.0);
+    double* c = new double[N * N];
+    for (int i = 0; i < N * N; ++i) {
+        c[i] = 1.0;
+    }
 
 
     kernel bbfmm;
@@ -35,19 +38,22 @@ int main() {
         else return 1.0/d;
         };
 
-    bbfmm.initialize(3, s, t, &c[0], N * N , N * N, 80, 10);
+    bbfmm.initialize(2, s, t, &c[0], N * N , N * N, 80, 10);
 
     MatrixXd potentialMatrix;
     bbfmm.run(potentialMatrix);
 
-//    MatrixXd potentialMatrix2;
-//    potentialMatrix2 = MatrixXd::Zero(N*N, 1);
-//
-//    for (int i = 0; i < N*N; ++i) {
-//        for (int j = 0; j < N*N; ++j) {
-//            potentialMatrix2(j, 0) += bbfmm.eval(s[i], t[j]);
-//        }
-//    }
-//
-//    std::cout << (potentialMatrix - potentialMatrix2).norm()/potentialMatrix.norm() << std::endl;
+    delete[] c;
+/*
+    MatrixXd potentialMatrix2;
+    potentialMatrix2 = MatrixXd::Zero(N*N, 1);
+
+    for (int i = 0; i < N*N; ++i) {
+        for (int j = 0; j < N*N; ++j) {
+            potentialMatrix2(j, 0) += bbfmm.eval(s[i], t[j]);
+        }
+    }
+
+    std::cout << (potentialMatrix - potentialMatrix2).norm()/potentialMatrix.norm() << std::endl;
+*/
 }
