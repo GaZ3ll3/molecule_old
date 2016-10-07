@@ -5,14 +5,10 @@ os:
   - osx
 
 compiler:
-  - g++
   - clang++
 
 install:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx"]]; then 
-        if ["$CXX" = "g++"]; then export CXX="g++" CC="gcc"; fi
-    fi
 
 addons:
   apt:
