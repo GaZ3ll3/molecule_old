@@ -8,7 +8,7 @@
 
 #include "tree.h"
 #include <functional>
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 
 using namespace Eigen;
 
