@@ -143,7 +143,7 @@ void tree::assignChildren(int _id, int _maxLevel) {
 }
 
 void tree::buildTree() {
-    omp_set_num_threads(4);
+//    omp_set_num_threads(4);
     point min_p(dict[root].center.x - dict[root].radius.x,
                 dict[root].center.y - dict[root].radius.y,
                 dict[root].center.z - dict[root].radius.z);

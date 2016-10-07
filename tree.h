@@ -8,7 +8,7 @@
 #include "node.h"
 #include "measure.h"
 #include <chrono>
-#include "omp.h"
+//#include "omp.h"
 
 class tree : public measure {
 public:

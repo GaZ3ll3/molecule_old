@@ -1,5 +1,5 @@
 
-cxx = clang++-3.5
+cxx = clang++
 all:
-	$(cxx) main.cpp tree.cpp -std=c++11 -O3 -fopenmp -I/usr/include/eigen3  -lpthread -lm -ldl -o bbfmm3d
+	$(cxx) main.cpp tree.cpp -std=c++11 -O3 -I./  -lpthread -lm -ldl -o bbfmm3d
 	
