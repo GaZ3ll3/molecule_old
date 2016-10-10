@@ -1,6 +1,9 @@
-//
-// Created by lurker on 9/28/16.
-//
+/*
+ * node.h
+ *
+ *  Created on: Oct 9, 2016
+ *      Author: Yimin Zhong
+ */
 
 #ifndef FMM_NODE_H_H
 #define FMM_NODE_H_H

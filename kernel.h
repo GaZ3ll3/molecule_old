@@ -1,6 +1,9 @@
-//
-// Created by lurker on 9/29/16.
-//
+/*
+ * kernel.h
+ *
+ *  Created on: Oct 9, 2016
+ *      Author: Yimin Zhong
+ */
 
 #ifndef FMM_KERNEL_H
 #define FMM_KERNEL_H
@@ -12,10 +15,10 @@
 
 using namespace Eigen;
 
-class kernel : public measure {
+class kernel  {
 public:
     tree t;
-    MatrixXd chargeTree;
+    VectorXd chargeTree;
     std::function<double(point&, point&)> eval;
     int rank;
 
@@ -25,17 +28,20 @@ public:
     VectorXd chebyNode;
     MatrixXd tNode;
 
-    kernel() {}
+    kernel() {
+    	nChebyshev = 0;
+    	rank = 0;
+    }
     ~kernel() {}
 
-    void initialize(int _nChebyshev, vector<point>& _source, vector<point>& _target, double* const _charge, int _nSource,
+    void initialize(int _nChebyshev, vector<point>& _source, vector<point>& _target, VectorXd _charge, int _nSource,
                     int _nTarget, int _rank, int _maxLevel) {
         // populate the kd-tree.
         t.populate(_source, _target, _nSource, _nTarget, _rank, _maxLevel);
 
         nChebyshev = _nChebyshev;
 
-        chargeTree = Map<MatrixXd>(_charge, _nSource, 1);
+        chargeTree = _charge;
 
         // nChebyshev^3 nodes are used for interpolation.
         rank = nChebyshev * nChebyshev * nChebyshev;
@@ -48,7 +54,13 @@ public:
 
         getTransfer(nChebyshev, chebyNode, tNode, R);
     }
+    void run(VectorXd& potentialMatrix) {
+        RUN("up-pass", upPass(0));
+        potentialMatrix = VectorXd::Zero(t.nTarget);
+        RUN("down-pass", downPass(0, potentialMatrix));
+    }
 
+protected:
 
     void getStandardChebyNodes(int _nChebyshev, VectorXd& _chebyNode) {
         _chebyNode = VectorXd::Zero(_nChebyshev);
@@ -56,7 +68,6 @@ public:
             _chebyNode(i) = -cos((i + 0.5) * M_PI/_nChebyshev);
         }
     }
-
     void getStandardChebyPoly(int _nChebyPoly, int _N, VectorXd& _x, MatrixXd& _T) {
         _T = MatrixXd::Zero(_N, _nChebyPoly);
         _T.col(0) = VectorXd::Ones(_N);
@@ -67,7 +78,6 @@ public:
             }
         }
     }
-
     void getTransferFromParentChebyshevToChildrenChebyshev(int _nChebyshev, VectorXd& _chebyNode, MatrixXd& _tNode, MatrixXd& _transfer) {
         VectorXd childChebyNode (2 * _nChebyshev);
         childChebyNode.segment(0, nChebyshev)          = 0.5 *(_chebyNode - VectorXd::Ones(_nChebyshev));
@@ -75,7 +85,6 @@ public:
         getStandardChebyPoly(_nChebyshev, 2 * _nChebyshev, childChebyNode, _transfer);
         _transfer = (2.0 * _transfer * _tNode.transpose() - MatrixXd::Ones(2 * _nChebyshev, _nChebyshev))/_nChebyshev;
     }
-
     void getTransfer(int _nChebyshev, VectorXd& _chebyNode, MatrixXd& _tNode, MatrixXd* R) {
         MatrixXd S;
         S = MatrixXd::Zero(2 * _nChebyshev, _nChebyshev);
@@ -111,7 +120,6 @@ public:
             }
         }
      }
-
     void getScaledChebyNode(int _nChebyNode, VectorXd& _chebyNode, point& center, point& radius,
                             vector<point>& _scaledCnode) {
         for (int i = 0; i < _nChebyNode; ++i) {
@@ -121,7 +129,6 @@ public:
         }
 
     }
-
     void getCharge(int rootId) {
         node& n = t.dict[rootId];
         if(n.chargeComputed){
@@ -130,58 +137,23 @@ public:
         else{
             n.chargeComputed	=	true;
             n.charge		=	MatrixXd::Zero(n.nSource,1);
-            for(unsigned long k=0;k<n.nSource; ++k){
+            for(int k=0;k<n.nSource; ++k){
                 n.charge.row(k)	=	chargeTree.row(n.sourceIndex[k]);
             }
         }
     }
-
-    void getTransferSourceParentToChildren(int _nChebyNode, vector<int>& _sourceIndex, point& _center, point& _radius,
-                                     VectorXd& _chebyNode, MatrixXd& _tNode, MatrixXd& R) {
-
-        int N = (int) _sourceIndex.size();
-        VectorXd standlocation[3];
-        standlocation[0].resize(N);
-        standlocation[1].resize(N);
-        standlocation[2].resize(N);
-        for (int i = 0; i < N; ++i) {
-            standlocation[0](i) = (t.sourceTree[_sourceIndex[i]].x - _center.x)/_radius.x;
-            standlocation[1](i) = (t.sourceTree[_sourceIndex[i]].y - _center.y)/_radius.y;
-            standlocation[2](i) = (t.sourceTree[_sourceIndex[i]].z - _center.z)/_radius.z;
-        }
-
-        MatrixXd Transfer[3];
-        for (int k = 0; k < 3; ++k) {
-            getStandardChebyPoly(_nChebyNode, N, standlocation[k], Transfer[k]);
-            Transfer[k] = (2.0 * Transfer[k] * _tNode.transpose() - MatrixXd::Ones(N, _nChebyNode))/_nChebyNode;
-        }
-        int _rank = _nChebyNode * _nChebyNode * _nChebyNode;
-        R = MatrixXd::Zero(N, _rank);
-        for (int k = 0; k < N; ++k) {
-            for (int i = 0; i < _nChebyNode; ++i) {
-                for (int j = 0; j <_nChebyNode; ++j) {
-                    for (int l = 0; l< _nChebyNode; ++l) {
-                        R(k, l*_nChebyNode * _nChebyNode + j*_nChebyNode + i) =
-                        Transfer[0](k, i) * Transfer[1](k, j) * Transfer[2](k, l);
-                    }
-                }
-            }
-        }
-    }
-
-
-    void getTransferTargetParentToChildren(int _nChebyNode, vector<int>& _targetIndex, point& _center, point& _radius,
+    void getTransferParentToChildren(int _nChebyNode, vector<point>& _tree, vector<int>& _index, point& _center, point& _radius,
                                            VectorXd& _chebyNode, MatrixXd& _tNode, MatrixXd& R) {
 
-        int N = (int) _targetIndex.size();
+        int N = (int) _index.size();
         VectorXd standlocation[3];
         standlocation[0].resize(N);
         standlocation[1].resize(N);
         standlocation[2].resize(N);
         for (int i = 0; i < N; ++i) {
-            standlocation[0](i) = (t.targetTree[_targetIndex[i]].x - _center.x)/_radius.x;
-            standlocation[1](i) = (t.targetTree[_targetIndex[i]].y - _center.y)/_radius.y;
-            standlocation[2](i) = (t.targetTree[_targetIndex[i]].z - _center.z)/_radius.z;
+            standlocation[0](i) = (_tree[_index[i]].x - _center.x)/_radius.x;
+            standlocation[1](i) = (_tree[_index[i]].y - _center.y)/_radius.y;
+            standlocation[2](i) = (_tree[_index[i]].z - _center.z)/_radius.z;
         }
 
         MatrixXd Transfer[3];
@@ -202,23 +174,18 @@ public:
             }
         }
     }
-
-
     void kernelEval(vector<point>& _source, vector<point>& _target, MatrixXd& K) {
         K = MatrixXd::Zero(_target.size(), _source.size());
-        for (int _s = 0; _s < _source.size(); ++_s) {
-            for (int _t = 0; _t < _target.size(); ++_t) {
+        for (size_t _s = 0; _s < _source.size(); ++_s) {
+            for (size_t _t = 0; _t < _target.size(); ++_t) {
                 K(_t, _s) = this->eval(_source[_s], _target[_t]);
             }
         }
     }
-
-
-
     void kernelEvalIndex(vector<int>& _sourceIndex, vector<int>& _targetIndex, MatrixXd& K) {
         K = MatrixXd::Zero(_targetIndex.size(), _sourceIndex.size());
-        for (int _s = 0; _s < _sourceIndex.size(); ++_s) {
-            for (int _t = 0; _t < _targetIndex.size(); ++_t) {
+        for (size_t _s = 0; _s < _sourceIndex.size(); ++_s) {
+            for (size_t _t = 0; _t < _targetIndex.size(); ++_t) {
                 K(_t, _s) = this->eval(
                         this->t.sourceTree[_sourceIndex[_s]],
                         this->t.targetTree[_targetIndex[_t]]
@@ -226,7 +193,6 @@ public:
             }
         }
     }
-
     void kernelEvalChebyshev(int _M, vector<point>& _xv, int _N,  vector<point>& _yv, MatrixXd& K) {
         vector<point> sourceVec;
         vector<point> targetVec;
@@ -251,14 +217,6 @@ public:
 
         kernelEval(sourceVec, targetVec, K);
     }
-
-
-    void run(MatrixXd& potentialMatrix) {
-        RUN("up-pass", upPass(0));
-        potentialMatrix = MatrixXd::Zero(t.nTarget, 1);
-        RUN("down-pass", downPass(0, potentialMatrix));
-    }
-
     void upPass(int rootId) {
         node& n = t.dict[rootId];
         n.scaledCnode.clear();
@@ -269,8 +227,8 @@ public:
         if (n.isLeaf) {
             // lazy
             getCharge(rootId);
-            getTransferSourceParentToChildren(nChebyshev, n.sourceIndex, n.center, n.radius, chebyNode, tNode, n.R);
-            getTransferTargetParentToChildren(nChebyshev, n.targetIndex, n.center, n.radius, chebyNode, tNode, n.L);
+            getTransferParentToChildren(nChebyshev, t.sourceTree, n.sourceIndex, n.center, n.radius, chebyNode, tNode, n.R);
+            getTransferParentToChildren(nChebyshev, t.targetTree, n.targetIndex, n.center, n.radius, chebyNode, tNode, n.L);
             n.nodeCharge += n.R.transpose() * n.charge;
         }
         else {
@@ -283,7 +241,7 @@ public:
         }
     }
 
-    void downPass(int rootId, MatrixXd& potential) {
+    void downPass(int rootId, VectorXd& potential) {
         node& n = t.dict[rootId];
         MatrixXd K;
 

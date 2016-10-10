@@ -1,7 +1,9 @@
-//
-// Created by lurker on 9/29/16.
-//
-
+/*
+ * tree.h
+ *
+ *  Created on: Oct 9, 2016
+ *      Author: Yimin Zhong
+ */
 #ifndef FMM_TREE_H
 #define FMM_TREE_H
 
@@ -13,9 +15,9 @@
 #include <cassert>
 #include <queue>
 
-//#include "omp.h"
+#include "omp.h"
 
-class tree : public measure {
+class tree  {
 public:
     vector<node> dict;
     int maxId;
@@ -35,6 +37,10 @@ public:
     tree() {
         maxId = -1;
         root = -1;
+        nSource = 0;
+        nTarget = 0;
+        rank = 0;
+        maxLevel = 0;
     }
     ~tree() {
 
@@ -93,7 +99,7 @@ void tree::getCenterRadius(vector<point> &_source) {
     double y_min = _source[0].y;
     double z_max = _source[0].z;
     double z_min = _source[0].z;
-    for (int i = 0; i < _source.size(); ++i) {
+    for (size_t i = 0; i < _source.size(); ++i) {
         x_max = std::max(x_max, _source[i].x);
         y_max = std::max(y_max, _source[i].y);
         z_max = std::max(z_max, _source[i].z);
@@ -115,7 +121,6 @@ void tree::assignChildren(int _id, int _maxLevel) {
      *
      * Now the limitation of nodes is around 2^24.
      */
-    assert(dict.size() > _id); // check if this node exists
     assert(root != -1); // check tree is non-empty
 
     // check source
@@ -186,14 +191,14 @@ void tree::assignChildren(int _id, int _maxLevel) {
 }
 
 void tree::buildTree() {
-//    omp_set_num_threads(4);
+    omp_set_num_threads(4);
     point min_p(dict[root].center.x - dict[root].radius.x,
                 dict[root].center.y - dict[root].radius.y,
                 dict[root].center.z - dict[root].radius.z);
     point max_p(dict[root].center.x + dict[root].radius.x,
                 dict[root].center.y + dict[root].radius.y,
                 dict[root].center.z + dict[root].radius.z);
-    int i;
+    size_t i;
 #pragma omp parallel for private(i) shared(min_p, max_p) schedule(dynamic)
     for (i = 0; i < dict.size(); ++i) {
         buildNode(i, min_p, max_p);
@@ -209,7 +214,7 @@ void tree::buildNode(int _id, point &min_p, point &max_p) {
 
     // not root
     if (n.parent != -1) {
-        node pn = dict[n.parent];
+        node& pn = dict[n.parent];
         double dx = n.radius.x;
         double dy = n.radius.y;
         double dz = n.radius.z;
@@ -333,7 +338,7 @@ void tree::output(std::string file) {
     std::ofstream file_stream(file);
     if (file_stream.is_open()) {
 
-        for (int i = 0; i < dict.size(); ++i) {
+        for (size_t i = 0; i < dict.size(); ++i) {
             file_stream << dict[i].center.x << " "
                         << dict[i].center.y << " "
                         << dict[i].center.z << " "
