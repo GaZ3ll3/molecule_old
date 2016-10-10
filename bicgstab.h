@@ -15,9 +15,9 @@ using namespace Eigen;
 using std::sqrt;
 using std::abs;
 
-const double eps = 1e-16;
 void bicgstab(std::function<VectorXd(VectorXd&)> f, VectorXd& rhs, VectorXd& x,
 		const int _maxIter, const double _tol) {
+    const double eps = 1e-15;
 	int maxIter = _maxIter;
 	double tol = _tol;
 
@@ -29,6 +29,7 @@ void bicgstab(std::function<VectorXd(VectorXd&)> f, VectorXd& rhs, VectorXd& x,
 
 	if (abs(rhs_sqnorm) < eps) {
 		x.setZero();
+        return;
 	}
 
 	double rho = 1.0;
@@ -73,7 +74,7 @@ void bicgstab(std::function<VectorXd(VectorXd&)> f, VectorXd& rhs, VectorXd& x,
 		t.noalias() = f(z);
 
 		double tmp = t.squaredNorm();
-		if (tmp > eps) {
+        if (tmp > 0.) {
 			w = t.dot(s)/tmp;
 		}
 		else {
@@ -85,6 +86,7 @@ void bicgstab(std::function<VectorXd(VectorXd&)> f, VectorXd& rhs, VectorXd& x,
 		++i;
 	}
     std::cout <<std::setw(6) << i <<  std::setw(20) << std::scientific<<sqrt(r.squaredNorm()/rhs_sqnorm) << std::endl;
+    std::cout << "===========================" << std::endl;
 }
 
 
