@@ -15,7 +15,7 @@
 #include <cassert>
 #include <queue>
 
-#include "omp.h"
+//#include "omp.h"
 
 class tree  {
 public:
