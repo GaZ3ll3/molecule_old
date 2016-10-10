@@ -1,3 +1,9 @@
+/*
+ * main.cpp
+ *
+ *  Created on: Oct 9, 2016
+ *      Author: Yimin Zhong
+ */
 #include <iostream>
 
 #include "kernel.h"
@@ -27,14 +33,6 @@ int main() {
     }
 
     VectorXd c = VectorXd::Ones(N * N);
-
-
-
-
-//    bbfmm.initialize(2, s, t, c, N * N , N * N, 80, 10);
-//    VectorXd potentialMatrix;
-//    bbfmm.run(potentialMatrix);
-
 
     auto f = [&](VectorXd& v) {
         kernel bbfmm;

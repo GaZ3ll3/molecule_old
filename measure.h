@@ -1,7 +1,9 @@
-//
-// Created by lurker on 10/2/16.
-//
-
+/*
+ * measure.h
+ *
+ *  Created on: Oct 9, 2016
+ *      Author: Yimin Zhong
+ */
 #ifndef FMM_MEASURE_H
 #define FMM_MEASURE_H
 
