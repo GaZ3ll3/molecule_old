@@ -13,7 +13,13 @@
 #include <functional>
 #include "Eigen/Dense"
 
+#ifdef RUN_OMP
+#include "omp.h"
+#endif
+
 using namespace Eigen;
+
+
 
 class kernel  {
 public:
@@ -29,8 +35,8 @@ public:
     MatrixXd tNode;
 
     kernel() {
-    	nChebyshev = 0;
-    	rank = 0;
+        nChebyshev = 0;
+        rank = 0;
     }
     ~kernel() {}
 
@@ -55,9 +61,31 @@ public:
         getTransfer(nChebyshev, chebyNode, tNode, R);
     }
     void run(VectorXd& potentialMatrix) {
-        RUN("up-pass", upPass(0));
+#ifdef RUN_OMP
+#pragma omp parallel
+#endif
+        {
+#ifdef RUN_OMP
+#pragma omp single
+#endif
+            RUN("up-pass", upPass(0));
+        }
+#ifdef RUN_OMP
+#pragma omp taskwait
+#endif
         potentialMatrix = VectorXd::Zero(t.nTarget);
-        RUN("down-pass", downPass(0, potentialMatrix));
+#ifdef RUN_OMP
+#pragma omp parallel
+#endif
+        {
+#ifdef RUN_OMP
+#pragma  omp single
+#endif
+            RUN("down-pass", downPass(0, potentialMatrix));
+        }
+#ifdef RUN_OMP
+#pragma omp taskwait
+#endif
     }
 
 protected:
@@ -233,7 +261,15 @@ protected:
         }
         else {
             for (int i = 0; i < 8; ++i) {
+#ifdef RUN_OMP
+#pragma omp task shared(n) firstprivate(i)
+#endif
                 upPass(n.child[i]);
+            }
+#ifdef RUN_OMP
+#pragma omp taskwait
+#endif
+            for (int i = 0; i < 8; ++i) {
                 if (!t.dict[n.child[i]].isEmpty) {
                     n.nodeCharge += R[i].transpose() * t.dict[n.child[i]].nodeCharge;
                 }
@@ -306,7 +342,9 @@ protected:
             n.potential += n.L * n.nodePotential;
 
             /*
-             * Finalize
+             * Finalize, caution:
+             *
+             * omp should be fine here, because no two threads will write to the same place at the same time.
              */
             for (int i = 0; i < n.nTarget; i++) {
                 potential.row(n.targetIndex[i]) += n.potential.row(i);
@@ -315,8 +353,14 @@ protected:
 
         if (!n.isLeaf) {
             for (int i = 0; i < 8; ++i) {
+#ifdef RUN_OMP
+#pragma omp task shared(n, potential) firstprivate(i)
+#endif
                 downPass(n.child[i], potential);
             }
+#ifdef RUN_OMP
+#pragma omp taskwait
+#endif
         }
     }
 };

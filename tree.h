@@ -15,7 +15,9 @@
 #include <cassert>
 #include <queue>
 
-//#include "omp.h"
+#ifdef RUN_OMP
+#include "omp.h"
+#endif
 
 class tree  {
 public:
@@ -191,7 +193,6 @@ void tree::assignChildren(int _id, int _maxLevel) {
 }
 
 void tree::buildTree() {
-//    omp_set_num_threads(4);
     point min_p(dict[root].center.x - dict[root].radius.x,
                 dict[root].center.y - dict[root].radius.y,
                 dict[root].center.z - dict[root].radius.z);
@@ -199,7 +200,9 @@ void tree::buildTree() {
                 dict[root].center.y + dict[root].radius.y,
                 dict[root].center.z + dict[root].radius.z);
     size_t i;
-//#pragma omp parallel for private(i) shared(min_p, max_p) schedule(dynamic)
+#ifdef RUN_OMP
+#pragma omp parallel for private(i) shared(min_p, max_p) schedule(dynamic)
+#endif
     for (i = 0; i < dict.size(); ++i) {
         buildNode(i, min_p, max_p);
     }
