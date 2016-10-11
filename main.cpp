@@ -37,7 +37,7 @@ int main() {
      * tau is the parameter for K_{\tau}.
      */
     int N = (int) source.size();
-    int np = 2;
+    int np = 3;
     double tau = dx;
 
     /*
