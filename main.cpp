@@ -71,7 +71,7 @@ int main() {
         bbfmm.eval = [&](point &a, point &b) {
             double d = (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z)*(a.z - b.z);
             double r = sqrt(d);
-            if (r < tau) return (1.0 / 8.0 / M_PI / tau) - (5.0 / 256.0 + 25.0 / 768.0) * tau / M_PI;
+            if (r < tau) return (1.0 / 4.0 / M_PI / tau) - (5.0 / 256.0 + 25.0 / 768.0) * tau / M_PI;
             else return -((a.x - b.x) * b.x + (a.y - b.y) * b.y + (a.z - b.z) * b.z) / d / r / (4 * M_PI);
             };
 
@@ -126,7 +126,7 @@ int main() {
     check_bbfmm.eval = [&](point &a, point &b) {
         double d = (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z);
         double r = sqrt(d);
-        if (r < tau) return (1.0 / 8.0 / M_PI / tau) - (5.0 / 256.0 + 25.0 / 768.0) * tau / M_PI;
+        if (r < tau) return (1.0 / 4.0 / M_PI / tau) - (5.0 / 256.0 + 25.0 / 768.0) * tau / M_PI;
         else return -((a.x - b.x) * b.x + (a.y - b.y) * b.y + (a.z - b.z) * b.z) / d / r / (4 * M_PI);
     };
 
