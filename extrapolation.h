@@ -10,6 +10,8 @@
 #include "kernel.h"
 #include "geometry.h"
 
+//todo: add actual functions aside with coarseWeight and fineWeight.
+//todo: projection from coarse mesh to fine mesh.
 inline VectorXd extrapolation(std::vector<point> &coarseSource,
                               std::vector<point> &fineSource,
                               std::vector<point> &target,

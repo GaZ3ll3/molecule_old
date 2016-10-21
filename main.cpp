@@ -24,8 +24,8 @@ int main() {
     /*
      * cube radius and sphere radius
      */
-    double cRadius = 1.0;
-    double sRadius = 1.0;
+    double cRadius = 2.0;
+    double sRadius = 1.5;
 
     /*
      * slice x slice grid on each face.
@@ -53,5 +53,6 @@ int main() {
     VectorXd ret = extrapolation(coarseSource, fineSource, target, coarseTriangle, fineTriangle, coarseWeight,
                                  fineWeight, eval, sRadius, np, maxPoint, maxLevel);
 
-    std::cout << (ret - VectorXd::Ones(coarseSource.size())).norm() / std::sqrt(coarseSource.size()) << std::endl;
+    std::cout << (ret - sRadius * VectorXd::Ones(coarseSource.size())).norm() / sqrt(coarseSource.size()) / sRadius
+              << std::endl;
 }
