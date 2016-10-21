@@ -2,6 +2,7 @@
  * node.h
  *
  *  Created on: Oct 9, 2016
+ *  Updated on: Oct 20, 2016
  *      Author: Yimin Zhong
  */
 
@@ -29,26 +30,46 @@
 
 using std::unordered_set;
 using std::vector;
-using namespace Eigen;
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
-class point {
+class basePoint {
 public:
     double x;
     double y;
     double z;
-    point() : x(0.), y(0.), z(0.) {}
-    point(double _x, double _y, double _z) : x(_x), y(_y), z(_z) {}
-    ~point(){}
 
-    bool operator>=(const point& a) {
+    basePoint() : x(0.), y(0.), z(0.) {}
+
+    basePoint(double _x, double _y, double _z) : x(_x), y(_y), z(_z) {}
+
+    virtual ~basePoint() {}
+
+    bool operator>=(const basePoint &a) {
         return ( x >= a.x ) && ( y >= a.y ) && (z >= a.z);
     }
-    bool operator<=(const point& a) {
+
+    bool operator<=(const basePoint &a) {
         return ( x <= a.x ) && ( y <= a.y ) && (z <= a.z);
     }
-    bool operator==(const point& a) {
+
+    bool operator==(const basePoint &a) {
         return (fabs(x - a.x) < __eps) && (fabs(y - a.y) < __eps) && (fabs(z - a.z) < __eps);
     }
+};
+
+
+class point : public basePoint {
+public:
+    int triangleId;
+
+    point() : basePoint() { triangleId = -1; }
+
+    point(double _x, double _y, double _z) : basePoint(_x, _y, _z) { triangleId = -1; }
+
+    point(double _x, double _y, double _z, int _id) : basePoint(_x, _y, _z) { triangleId = _id; }
+
+    ~point() {}
 };
 
 class baseNode {

@@ -2,6 +2,7 @@
  * kernel.h
  *
  *  Created on: Oct 9, 2016
+ *  Updated on: Oct 20, 2016
  *      Author: Yimin Zhong
  */
 
@@ -17,7 +18,8 @@
 #include "omp.h"
 #endif
 
-using namespace Eigen;
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
 
 
