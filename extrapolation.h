@@ -49,8 +49,8 @@ inline VectorXd extrapolation(std::vector<point> &coarseSource,
         g(i) = fineWeight[i];
     }
 
-    G_coarse.initialize(np, coarseSource, target, f, N_coarse, N_coarse, 160, 10);
-    G_fine.initialize(np, fineSource, target, g, N_fine, N_coarse, 160, 10);
+    G_coarse.initialize(np, coarseSource, target, f, N_coarse, N_coarse, maxPoint, maxLevel);
+    G_fine.initialize(np, fineSource, target, g, N_fine, N_coarse, maxPoint, maxLevel);
     VectorXd potential;
     VectorXd potential2;
     G_coarse.run(potential);
