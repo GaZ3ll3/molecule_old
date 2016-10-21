@@ -36,8 +36,8 @@ inline VectorXd extrapolation(std::vector<point> &coarseSource,
     };
 
 
-    int N_coarse = coarseWeight.size();
-    int N_fine = fineWeight.size();
+    int N_coarse = (int) coarseWeight.size();
+    int N_fine = (int) fineWeight.size();
     VectorXd f(coarseWeight.size());
     VectorXd g(fineWeight.size());
 

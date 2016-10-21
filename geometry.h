@@ -312,7 +312,7 @@ inline void cubeProjection(vector<point> &source,
  * eval should be in form of eval(source, target)
  */
 inline double singularIntegral(point &singular, vector<point> &vertices, const double &sRadius,
-                               std::function<double(point &, point &)> eval) {
+                               std::function<double(point &, point &)> eval) noexcept {
     /*
      * get 3 vertices of triangle enclosing singularity
      */
