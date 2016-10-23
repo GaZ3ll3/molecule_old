@@ -377,4 +377,17 @@ inline double singularIntegral(point &singular, vector<point> &vertices, const d
 }
 
 
+inline void projection(vector<int> &proj, vector<point> &coarseSource, vector<point> &fineSource) {
+    proj.clear();
+    proj.resize(coarseSource.size());
+    for (int i = 0; i < coarseSource.size(); ++i) {
+        for (int j = 0; j < fineSource.size(); ++j) {
+            if (coarseSource[i] == fineSource[j]) {
+                proj[i] = j;
+                break;
+            }
+        }
+    }
+}
+
 #endif //FMM_GEOMETRY_H
