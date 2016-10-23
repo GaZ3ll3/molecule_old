@@ -32,7 +32,7 @@ int main() {
     /*
      * slice x slice grid on each face.
      */
-    int slice = 64;
+    int slice = 16;
 
     cubeProjection(coarseSource, coarseWeight, coarseTriangle, cRadius, sRadius, slice);
     coarseTarget = coarseSource;
@@ -217,12 +217,13 @@ int main() {
 
     VectorXd input(2 * N);
     VectorXd start(2 * N);
-    start.setZero();
+
     for (int i = 0; i < N; ++i) {
         input(i) = 1.0 / dE / 4.0 / M_PI / sRadius / (1 + k * sRadius);
         input(i + N) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
     }
 
+    start = input;
 
     VectorXd output(2 * N);
     output.setZero();
@@ -230,17 +231,18 @@ int main() {
         output(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(coarseMap, output, start, 10, 40, 1e-7);
+    gmres(coarseMap, output, start, 60, 40, 1e-7);
 
 
     VectorXd input_(2 * M);
     VectorXd start_(2 * M);
-    start_.setZero();
+
     for (int i = 0; i < M; ++i) {
         input_(i) = 1.0 / dE / 4.0 / M_PI / sRadius / (1 + k * sRadius);
         input_(i + M) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
     }
 
+    start_ = input_;
 
     VectorXd output_(2 * M);
     output_.setZero();
@@ -248,7 +250,7 @@ int main() {
         output_(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(fineMap, output_, start_, 10, 40, 1e-7);
+    gmres(fineMap, output_, start_, 60, 40, 1e-7);
 
 
     vector<int> proj;
