@@ -18,10 +18,10 @@ int main() {
     /*
      * allocating source, target locations and weights
      */
-    vector<point> coarseSource, fineSource;
-    vector<point> coarseTarget, fineTarget;
-    vector<point> coarseTriangle, fineTriangle;
-    vector<double> coarseWeight, fineWeight;
+    vector<point> coarseSource;
+    vector<point> coarseTarget;
+    vector<point> coarseTriangle;
+    vector<double> coarseWeight;
 
     /*
      * cube radius and sphere radius
@@ -32,7 +32,7 @@ int main() {
     /*
      * slice x slice grid on each face.
      */
-    int slice = 32;
+    int slice = 16;
 
     cubeProjection(coarseSource, coarseWeight, coarseTriangle, cRadius, sRadius, slice);
     coarseTarget = coarseSource;
@@ -47,23 +47,8 @@ int main() {
         coarseNormalZ[i] = coarseSource[i].z / sRadius;
     }
 
-
-    cubeProjection(fineSource, fineWeight, fineTriangle, cRadius, sRadius, 2 * slice);
-    fineTarget = fineSource;
-
-    vector<double> fineNormalX(fineSource.size());
-    vector<double> fineNormalY(fineSource.size());
-    vector<double> fineNormalZ(fineSource.size());
-
-    for (int i = 0; i < fineSource.size(); ++i) {
-        fineNormalX[i] = fineSource[i].x / sRadius;
-        fineNormalY[i] = fineSource[i].y / sRadius;
-        fineNormalZ[i] = fineSource[i].z / sRadius;
-    }
-
-
-    int np = 4;
-    int maxPoint = np * np * np;
+    int np = 3;
+    int maxPoint = 160;
     int maxLevel = 10;
 
     double k = 0.03;
@@ -204,16 +189,11 @@ int main() {
 
 
     int N = (int) coarseSource.size();
-    int M = (int) fineSource.size();
     auto coarseMap = [&](VectorXd &phi) {
         return Mapping(coarseSource, coarseTarget, coarseTriangle, coarseWeight, coarseNormalX, coarseNormalY,
                        coarseNormalZ, phi);
     };
 
-    auto fineMap = [&](VectorXd &phi) {
-        return Mapping(fineSource, fineTarget, fineTriangle, fineWeight, fineNormalX, fineNormalY,
-                       fineNormalZ, phi);
-    };
 
     VectorXd input(2 * N);
     VectorXd start(2 * N);
@@ -234,37 +214,7 @@ int main() {
 
     gmres(coarseMap, output, start, 200, 40, 1e-3);
 
-
-    VectorXd input_(2 * M);
-    VectorXd start_(2 * M);
-
-    for (int i = 0; i < M; ++i) {
-        input_(i) = 1.0 / dE / 4.0 / M_PI / sRadius / (1 + k * sRadius);
-        input_(i + M) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
-    }
-
-    start_.setZero();
-//    start_ = input_;
-    VectorXd output_(2 * M);
-    output_.setZero();
-    for (int i = 0; i < M; ++i) {
-        output_(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
-    }
-
-    gmres(fineMap, output_, start_, 200, 40, 1e-3);
-
-
-    vector<int> proj;
-    projection(proj, coarseSource, fineSource);
-    VectorXd ret(2 * N);
-    for (int i = 0; i < N; ++i) {
-        ret(i) = start_(proj[i]);
-        ret(i + N) = start_(M + proj[i]);
-    }
-
     std::cout << "coarse error :" << (start - input).norm() / input.norm() << std::endl;
-    std::cout << "fine mapped error: " << (ret - input).norm() / input.norm() << std::endl;
-    std::cout << "fine error: " << (start_ - input_).norm() / input_.norm() << std::endl;
-    std::cout << "extrapolation error: " << (2 * ret - start - input).norm() / input.norm() << std::endl;
+
 
 }
