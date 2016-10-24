@@ -32,7 +32,7 @@ int main() {
     /*
      * slice x slice grid on each face.
      */
-    int slice = 16;
+    int slice = 32;
 
     cubeProjection(coarseSource, coarseWeight, coarseTriangle, cRadius, sRadius, slice);
     coarseTarget = coarseSource;
@@ -212,9 +212,102 @@ int main() {
         output(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(coarseMap, output, start, 200, 40, 1e-3);
+    gmres(coarseMap, output, start, 200, 40, sqrt(1e-7));
 
     std::cout << "coarse error :" << (start - input).norm() / input.norm() << std::endl;
+
+
+    auto RXN = [&](vector<point> &source, vector<point> &target, vector<point> triangle, vector<double> &weight,
+                   vector<double> &normalX, vector<double> &normalY, vector<double> &normalZ, VectorXd &phi) {
+        int N = (int) source.size();
+        int M = (int) target.size();
+
+        assert(phi.rows() == 2 * N);
+
+        kernel G0, Gk, pG0x, pG0y, pG0z, pGkx, pGky, pGkz;
+        G0.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_G0);
+            else return eval_G0(a, b);
+        };
+        Gk.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_Gk);
+            else return eval_Gk(a, b);
+        };
+        pG0x.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0x);
+            else return eval_pG0x(a, b);
+        };
+        pG0y.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0y);
+            else return eval_pG0y(a, b);
+        };
+        pG0z.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0z);
+            else return eval_pG0z(a, b);
+        };
+        pGkx.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGkx);
+            else return eval_pGkx(a, b);
+        };
+        pGky.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGky);
+            else return eval_pGky(a, b);
+        };
+        pGkz.eval = [&](point &a, point &b) {
+            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGkz);
+            else return eval_pGkz(a, b);
+        };
+        // f = partial phi/partial n
+        // g = phi
+        // Phi =  g   |  f
+        VectorXd f(N);
+        VectorXd gX(N), gY(N), gZ(N);
+        for (int i = 0; i < N; ++i) {
+            f(i) = phi(i + N) * weight[i];
+            gX(i) = phi(i) * normalX[i] * weight[i];
+            gY(i) = phi(i) * normalY[i] * weight[i];
+            gZ(i) = phi(i) * normalZ[i] * weight[i];
+        }
+
+
+        G0.initialize(np, source, target, f, N, M, maxPoint, maxLevel);
+        pG0x.initialize(np, source, target, gX, N, M, maxPoint, maxLevel);
+        pG0y.initialize(np, source, target, gY, N, M, maxPoint, maxLevel);
+        pG0z.initialize(np, source, target, gZ, N, M, maxPoint, maxLevel);
+
+        Gk.initialize(np, source, target, f, N, M, maxPoint, maxLevel);
+        pGkx.initialize(np, source, target, gX, N, M, maxPoint, maxLevel);
+        pGky.initialize(np, source, target, gY, N, M, maxPoint, maxLevel);
+        pGkz.initialize(np, source, target, gZ, N, M, maxPoint, maxLevel);
+
+
+        VectorXd retG0(M), retGk(M), retpG0X(M), retpG0Y(M), retpG0Z(M), retpGkX(M), retpGkY(M), retpGkZ(M);
+        G0.run(retG0);
+        Gk.run(retGk);
+        pG0x.run(retpG0X);
+        pG0y.run(retpG0Y);
+        pG0z.run(retpG0Z);
+        pGkx.run(retpGkX);
+        pGky.run(retpGkY);
+        pG0z.run(retpGkZ);
+
+        VectorXd ret(M);
+        ret = 0.5 * (dE / dI * (retpGkX + retpGkY + retpGkZ) - (retpG0X + retpG0Y + retpG0Z) + retG0 - retGk);
+
+        return ret;
+    };
+
+
+    vector<point> rxnTarget;
+    rxnTarget.push_back(point(0., 0., 0.));
+
+    double rxn_ret = 1.0 / 8. / M_PI / sRadius * (1.0 / dE / (1 + k) - 1.0 / dI);
+
+    std::cout << "rxn energy error: " << (RXN(coarseSource, rxnTarget, coarseTriangle, coarseWeight, coarseNormalX,
+                                              coarseNormalY,
+                                              coarseNormalZ,
+                                              start)(0) - rxn_ret) / rxn_ret << std::endl;
+
 
 
 }
