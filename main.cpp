@@ -32,7 +32,7 @@ int main() {
     /*
      * slice x slice grid on each face.
      */
-    int slice = 16;
+    int slice = 32;
 
     cubeProjection(coarseSource, coarseWeight, coarseTriangle, cRadius, sRadius, slice);
     coarseTarget = coarseSource;
@@ -62,7 +62,7 @@ int main() {
     }
 
 
-    int np = 4;
+    int np = 6;
     int maxPoint = 320;
     int maxLevel = 10;
 
@@ -223,7 +223,8 @@ int main() {
         input(i + N) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
     }
 
-    start = input;
+    //start = input; //
+    start.setZero();
 
     VectorXd output(2 * N);
     output.setZero();
@@ -231,7 +232,7 @@ int main() {
         output(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(coarseMap, output, start, 60, 40, 1e-7);
+    gmres(coarseMap, output, start, 10, 40, 1e-7);
 
 
     VectorXd input_(2 * M);
@@ -242,7 +243,7 @@ int main() {
         input_(i + M) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
     }
 
-    start_ = input_;
+    start_.setZero();
 
     VectorXd output_(2 * M);
     output_.setZero();
@@ -250,7 +251,7 @@ int main() {
         output_(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(fineMap, output_, start_, 60, 40, 1e-7);
+    gmres(fineMap, output_, start_, 10, 40, 1e-7);
 
 
     vector<int> proj;
@@ -262,7 +263,7 @@ int main() {
     }
 
     std::cout << "coarse error :" << (start - input).norm() / input.norm() << std::endl;
-    std::cout << "fine error: " << (start_ - input_).norm() / input_.norm() << std::endl;
-    std::cout << "extrapolation: " << (2 * ret - start - input).norm() / input.norm() << std::endl;
+    std::cout << "fine error: " << (ret - input).norm() / input.norm() << std::endl;
+    std::cout << "extrapolation error: " << (2 * ret - start - input).norm() / input.norm() << std::endl;
 
 }

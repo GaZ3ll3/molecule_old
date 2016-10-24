@@ -30,7 +30,7 @@ bool gmres(std::function<VectorXd(VectorXd &)> f, VectorXd &rhs, VectorXd &x,
     int m = rhs.rows();
     VectorXd p0;
     p0 = rhs - f(x);
-    VectorXd r0 = p0;
+    VectorXd r0 = p0; // pre-conditioner solve
 
     if (abs(r0.norm() < tol)) {
         return true;
@@ -66,7 +66,7 @@ bool gmres(std::function<VectorXd(VectorXd &)> f, VectorXd &rhs, VectorXd &x,
         }
 
         VectorXd t = f(v);
-        v = t;
+        v = t; // pre-conditioner solve
 
         for (int i = 0; i < k; ++i) {
             v.tail(m - i).applyHouseholderOnTheLeft(H.col(i).tail(m - i - 1), tau.coeffRef(i), workspace.data());
@@ -131,7 +131,7 @@ bool gmres(std::function<VectorXd(VectorXd &)> f, VectorXd &rhs, VectorXd &x,
                 k = 0;
 
                 VectorXd p0 = f(x);
-                VectorXd p1 = p0;
+                VectorXd p1 = p0; // pre-conditioner solve
                 r0 = rhs - p1;
                 w = VectorXd::Zero(_restart + 1);
                 H = MatrixXd::Zero(m, _restart + 1);
