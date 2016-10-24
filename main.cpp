@@ -32,7 +32,7 @@ int main() {
     /*
      * slice x slice grid on each face.
      */
-    int slice = 4;
+    int slice = 32;
 
     cubeProjection(coarseSource, coarseWeight, coarseTriangle, cRadius, sRadius, slice);
     coarseTarget = coarseSource;
@@ -62,8 +62,8 @@ int main() {
     }
 
 
-    int np = 3;
-    int maxPoint = 160;
+    int np = 4;
+    int maxPoint = np * np * np;
     int maxLevel = 10;
 
     double k = 0.03;
@@ -232,7 +232,7 @@ int main() {
         output(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(coarseMap, output, start, 200, 40, 1e-7);
+    gmres(coarseMap, output, start, 200, 40, 1e-3);
 
 
     VectorXd input_(2 * M);
@@ -251,7 +251,7 @@ int main() {
         output_(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(fineMap, output_, start_, 200, 40, 1e-7);
+    gmres(fineMap, output_, start_, 200, 40, 1e-3);
 
 
     vector<int> proj;
