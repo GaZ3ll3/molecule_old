@@ -85,7 +85,7 @@ inline void quadrature(vector<point> &source,
     alpha = angle(b, c);
     beta = angle(c, a);
     gamma = angle(a, b);
-    T_s = triangleArea;
+    T_s = triangleArea / sRadius / sRadius;
 
     psi_t = asin(sqrt(cos(beta) * cos(beta) + cos(gamma) * cos(gamma) - 2 * cos(alpha) * cos(beta) * cos(gamma)) /
                  sin(alpha));

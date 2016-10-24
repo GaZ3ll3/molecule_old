@@ -27,12 +27,12 @@ int main() {
      * cube radius and sphere radius
      */
     double cRadius = 2.0;
-    double sRadius = 1.0;
+    double sRadius = 1.5;
 
     /*
      * slice x slice grid on each face.
      */
-    int slice = 8;
+    int slice = 4;
 
     cubeProjection(coarseSource, coarseWeight, coarseTriangle, cRadius, sRadius, slice);
     coarseTarget = coarseSource;
@@ -66,7 +66,7 @@ int main() {
     int maxPoint = 160;
     int maxLevel = 10;
 
-    double k = 1.0;
+    double k = 0.03;
     double dE = 80.0;
     double dI = 2.0;
 
@@ -223,8 +223,8 @@ int main() {
         input(i + N) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
     }
 
-    start = input;
-//    start.setZero();
+//    start = input;
+    start.setZero();
 
     VectorXd output(2 * N);
     output.setZero();
@@ -232,7 +232,7 @@ int main() {
         output(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(coarseMap, output, start, 6, 40, 1e-7);
+    gmres(coarseMap, output, start, 200, 40, 1e-7);
 
 
     VectorXd input_(2 * M);
@@ -243,15 +243,15 @@ int main() {
         input_(i + M) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
     }
 
-//    start_.setZero();
-    start_ = input_;
+    start_.setZero();
+//    start_ = input_;
     VectorXd output_(2 * M);
     output_.setZero();
     for (int i = 0; i < M; ++i) {
         output_(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
     }
 
-    gmres(fineMap, output_, start_, 6, 40, 1e-7);
+    gmres(fineMap, output_, start_, 200, 40, 1e-7);
 
 
     vector<int> proj;
@@ -263,7 +263,8 @@ int main() {
     }
 
     std::cout << "coarse error :" << (start - input).norm() / input.norm() << std::endl;
-    std::cout << "fine error: " << (ret - input).norm() / input.norm() << std::endl;
+    std::cout << "fine mapped error: " << (ret - input).norm() / input.norm() << std::endl;
+    std::cout << "fine error: " << (start_ - input_).norm() / input_.norm() << std::endl;
     std::cout << "extrapolation error: " << (2 * ret - start - input).norm() / input.norm() << std::endl;
 
 }
