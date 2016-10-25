@@ -1,16 +1,14 @@
-/*
- * geometry.h
- *
- *  Created on: Oct 9, 2016
- *  Updated on: Oct 20, 2016
- *      Author: Yimin Zhong
- */
+//
+// Created by lurker on 10/24/16.
+//
 
-#ifndef FMM_GEOMETRY_H
-#define FMM_GEOMETRY_H
+#ifndef BBFMM3D_STANDARD_H
+#define BBFMM3D_STANDARD_H
+
 
 #include <vector>
 #include "node.h"
+// generate standard points.
 
 /*
  * L2 norm of a vector
@@ -19,6 +17,13 @@ inline double norm(const double &x, const double &y, const double &z) noexcept {
     return sqrt(x * x + y * y + z * z);
 }
 
+inline double norm(const point &a) {
+    return norm(a.x, a.y, a.z);
+}
+
+inline double inner(point a, point b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 /*
  * L2 norm squared
  */
@@ -26,25 +31,11 @@ inline double normSqr(const double &x, const double &y, const double &z) noexcep
     return x * x + y * y + z * z;
 }
 
-/*
- * angle between two vectors
- */
 inline double angle(point &a, point &b) noexcept {
     double r = norm(a.x, a.y, a.z);
     double s = norm(b.x, b.y, b.z);
     return acos((a.x * b.x + a.y * b.y + a.z * b.z) / r / s);
 }
-
-/*
- *  get area of spherical triangle
- *
- */
-inline double area(const double &a, const double &b, const double &c, const double &sRadius) noexcept {
-    double s = (a + b + c) * 0.5;
-    return 4 * sRadius * sRadius *
-           atan(sqrt(tan(0.5 * s) * tan(0.5 * (s - a)) * tan(0.5 * (s - b)) * tan(0.5 * (s - c))));
-}
-
 
 inline double theta(double psi_i, double psi_t, double phi) {
     using std::cos;
@@ -69,6 +60,8 @@ inline double theta(double psi_i, double psi_t, double phi) {
     }
 
 }
+
+
 /*
  * a single point quadrature rule for non-singular triangles
  */
@@ -138,44 +131,14 @@ inline void quadrature(vector<point> &source,
     weight.push_back(triangleArea);
 }
 
-inline void gauss(point &singularPoint, point &left, point &right,
-                  const double &sRadius,
-                  vector<point> &quadraturePoint, vector<double> &quadratureWeight) noexcept {
-    /*
-     * high order accuracy scheme with 3 point each dimension.
-     */
-    vector<double> gaussPoint = {(1 - std::sqrt(3.) / sqrt(5.)) / 2., 0.5, (1 + std::sqrt(3.) / sqrt(5.)) / 2.};
-    vector<double> gaussWeight = {5. / 18., 4. / 9., 5. / 18.};
-
-    assert(gaussWeight.size() == gaussPoint.size());
-
-    int N = (int) gaussPoint.size();
-
-    // Cartesian tensor of gauss points
-    for (int i = 0; i < N; ++i) {
-        double curWeight = gaussWeight[i];
-        double curPoint1 = gaussPoint[i];
-        for (int j = 0; j < N; ++j) {
-            double combinedWeight = gaussWeight[j] * curWeight;
-            /*
-             * rescale due to singularity
-             */
-            double curPoint2 = gaussPoint[j] * (1.0 - curPoint1);
-            quadratureWeight.push_back(2.0 * (1.0 - curPoint1) * combinedWeight);
-
-            /*
-             * Cartesian coordinate of quadrature point
-             */
-            double px = singularPoint.x * curPoint1 + right.x * curPoint2 + left.x * (1.0 - curPoint1 - curPoint2);
-            double py = singularPoint.y * curPoint1 + right.y * curPoint2 + left.y * (1.0 - curPoint1 - curPoint2);
-            double pz = singularPoint.z * curPoint1 + right.z * curPoint2 + left.z * (1.0 - curPoint1 - curPoint2);
-            /*
-             * project to sphere
-             */
-            double scale = sRadius / norm(px, py, pz);
-            quadraturePoint.push_back(point(px * scale, py * scale, pz * scale));
-        }
-    }
+/*
+ *  get area of spherical triangle
+ *
+ */
+inline double area(const double &a, const double &b, const double &c, const double &sRadius) noexcept {
+    double s = (a + b + c) * 0.5;
+    return 4 * sRadius * sRadius *
+           atan(sqrt(tan(0.5 * s) * tan(0.5 * (s - a)) * tan(0.5 * (s - b)) * tan(0.5 * (s - c))));
 }
 
 
@@ -364,89 +327,6 @@ inline void cubeProjection(vector<point> &source,
     xProjection(source, weight, vertices, -fixed, -fixed, delta, sRadius, N, curTriangleId);
     yProjection(source, weight, vertices, fixed, -fixed, delta, sRadius, N, curTriangleId);
     yProjection(source, weight, vertices, -fixed, -fixed, delta, sRadius, N, curTriangleId);
-
 }
 
-/*
- * eval should be in form of eval(source, target)
- */
-inline double singularIntegral(point &singular, vector<point> &vertices, const double &sRadius,
-                               std::function<double(point &, point &)> eval) noexcept {
-    /*
-     * get 3 vertices of triangle enclosing singularity
-     */
-    point &pointA = vertices[3 * singular.triangleId];
-    point &pointB = vertices[3 * singular.triangleId + 1];
-    point &pointC = vertices[3 * singular.triangleId + 2];
-
-    double angleA = angle(pointB, pointC);
-    double angleB = angle(pointC, pointA);
-    double angleC = angle(pointA, pointB);
-    double triangleArea = area(angleA, angleB, angleC, sRadius);
-
-    double angleSubA, angleSubB, angleSubC, triangleSubArea;
-
-    angleSubA = angle(pointA, singular);
-    angleSubB = angle(pointB, singular);
-    angleSubC = angle(pointC, singular);
-
-    vector<point> quadraturePoint;
-    vector<double> quadratureWeight;
-
-    double ret = 0.;
-
-    /*
-     * AB Part
-     */
-    gauss(singular, pointA, pointB, sRadius, quadraturePoint, quadratureWeight);
-    triangleSubArea = area(angleC, angleSubA, angleSubB, sRadius);
-
-    for (int i = 0; i < quadraturePoint.size(); ++i) {
-        ret += quadratureWeight[i] * triangleSubArea / triangleArea * eval(quadraturePoint[i], singular);
-    }
-    quadraturePoint.clear();
-    quadratureWeight.clear();
-
-    /*
-     * BC part
-     */
-    gauss(singular, pointB, pointC, sRadius, quadraturePoint, quadratureWeight);
-    triangleSubArea = area(angleA, angleSubB, angleSubC, sRadius);
-
-    for (int i = 0; i < quadraturePoint.size(); ++i) {
-        ret += quadratureWeight[i] * triangleSubArea / triangleArea * eval(quadraturePoint[i], singular);
-    }
-    quadraturePoint.clear();
-    quadratureWeight.clear();
-
-
-    /*
-     * CA part
-     */
-    gauss(singular, pointC, pointA, sRadius, quadraturePoint, quadratureWeight);
-    triangleSubArea = area(angleB, angleSubC, angleSubA, sRadius);
-
-    for (int i = 0; i < quadraturePoint.size(); ++i) {
-        ret += quadratureWeight[i] * triangleSubArea / triangleArea * eval(quadraturePoint[i], singular);
-    }
-    quadraturePoint.clear();
-    quadratureWeight.clear();
-
-    return ret;
-}
-
-
-inline void projection(vector<int> &proj, vector<point> &coarseSource, vector<point> &fineSource) {
-    proj.clear();
-    proj.resize(coarseSource.size());
-    for (int i = 0; i < coarseSource.size(); ++i) {
-        for (int j = 0; j < fineSource.size(); ++j) {
-            if (coarseSource[i] == fineSource[j]) {
-                proj[i] = j;
-                break;
-            }
-        }
-    }
-}
-
-#endif //FMM_GEOMETRY_H
+#endif //BBFMM3D_STANDARD_H

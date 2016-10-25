@@ -8,8 +8,8 @@
 #include "kernel.h"
 #include "bicgstab.h"
 #include "gmres.h"
-#include "geometry.h"
-#include "extrapolation.h"
+#include "molecule.h"
+#include "singular.h"
 
 int main() {
 #ifdef RUN_OMP
@@ -22,32 +22,39 @@ int main() {
     vector<point> coarseTarget;
     vector<point> coarseTriangle;
     vector<double> coarseWeight;
+    vector<double> coarseNormalX;
+    vector<double> coarseNormalY;
+    vector<double> coarseNormalZ;
+
 
     /*
      * cube radius and sphere radius
      */
     double cRadius = 2.0;
-    double sRadius = 1.5;
 
     /*
      * slice x slice grid on each face.
      */
     int slice = 32;
 
-    cubeProjection(coarseSource, coarseWeight, coarseTriangle, cRadius, sRadius, slice);
+    vector<point> centers;
+    vector<double> radius;
+
+
+    centers.push_back(point(0., 0., 0.));
+    centers.push_back(point(1.2, 0., 0.));
+    radius.push_back(1.0);
+    radius.push_back(1.0);
+
+
+    moleculeProjection(centers, radius, coarseSource, coarseWeight, coarseNormalX, coarseNormalY, coarseNormalZ,
+                       coarseTriangle,
+                       cRadius, slice);
     coarseTarget = coarseSource;
 
-    vector<double> coarseNormalX(coarseSource.size());
-    vector<double> coarseNormalY(coarseSource.size());
-    vector<double> coarseNormalZ(coarseSource.size());
+    std::cout << "source point: " << coarseSource.size() << std::endl;
 
-    for (int i = 0; i < coarseSource.size(); ++i) {
-        coarseNormalX[i] = coarseSource[i].x / sRadius;
-        coarseNormalY[i] = coarseSource[i].y / sRadius;
-        coarseNormalZ[i] = coarseSource[i].z / sRadius;
-    }
-
-    int np = 3;
+    int np = 4;
     int maxPoint = 160;
     int maxLevel = 10;
 
@@ -115,35 +122,35 @@ int main() {
 
         kernel G0, Gk, pG0x, pG0y, pG0z, pGkx, pGky, pGkz;
         G0.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_G0);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_G0);
             else return eval_G0(a, b);
         };
         Gk.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_Gk);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_Gk);
             else return eval_Gk(a, b);
         };
         pG0x.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0x);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pG0x);
             else return eval_pG0x(a, b);
         };
         pG0y.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0y);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pG0y);
             else return eval_pG0y(a, b);
         };
         pG0z.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0z);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pG0z);
             else return eval_pG0z(a, b);
         };
         pGkx.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGkx);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pGkx);
             else return eval_pGkx(a, b);
         };
         pGky.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGky);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pGky);
             else return eval_pGky(a, b);
         };
         pGkz.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGkz);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pGkz);
             else return eval_pGkz(a, b);
         };
         // f = partial phi/partial n
@@ -199,22 +206,26 @@ int main() {
     VectorXd start(2 * N);
 
     for (int i = 0; i < N; ++i) {
-        input(i) = 1.0 / dE / 4.0 / M_PI / sRadius / (1 + k * sRadius);
-        input(i + N) = -1.0 / dI / 4.0 / M_PI / sRadius / sRadius;
+        input(i) = 1.0 / dE / 4.0 / M_PI / radius[0] / (1 + k * radius[0]);
+        input(i + N) = -1.0 / dI / 4.0 / M_PI / radius[0] / radius[0];
     }
-
+//
 //    start = input;
     start.setZero();
 
     VectorXd output(2 * N);
     output.setZero();
     for (int i = 0; i < N; ++i) {
-        output(i) = 1.0 / dI / 4.0 / M_PI / sRadius;
+        for (int j = 0; j < centers.size(); ++j) {
+            double d = norm(centers[j].x - coarseSource[i].x, centers[j].y - coarseSource[i].y, centers[j].z -
+                                                                                                coarseSource[i].z);
+            output(i) += 1.0 / dI / 4.0 / M_PI / d;
+        }
     }
 
-    gmres(coarseMap, output, start, 200, 40, sqrt(1e-7));
+    gmres(coarseMap, output, start, 200, 40, sqrt(1e-5));
 
-    std::cout << "coarse error :" << (start - input).norm() / input.norm() << std::endl;
+//    std::cout << "coarse error :" << (start - 2 * input).norm() /2/ input.norm() << std::endl;
 
 
     auto RXN = [&](vector<point> &source, vector<point> &target, vector<point> triangle, vector<double> &weight,
@@ -226,35 +237,35 @@ int main() {
 
         kernel G0, Gk, pG0x, pG0y, pG0z, pGkx, pGky, pGkz;
         G0.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_G0);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_G0);
             else return eval_G0(a, b);
         };
         Gk.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_Gk);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_Gk);
             else return eval_Gk(a, b);
         };
         pG0x.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0x);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pG0x);
             else return eval_pG0x(a, b);
         };
         pG0y.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0y);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pG0y);
             else return eval_pG0y(a, b);
         };
         pG0z.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pG0z);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pG0z);
             else return eval_pG0z(a, b);
         };
         pGkx.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGkx);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pGkx);
             else return eval_pGkx(a, b);
         };
         pGky.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGky);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pGky);
             else return eval_pGky(a, b);
         };
         pGkz.eval = [&](point &a, point &b) {
-            if (a == b) return singularIntegral(a, triangle, sRadius, eval_pGkz);
+            if (a == b) return singularIntegral(a, triangle, radius[a.ballId], centers, eval_pGkz);
             else return eval_pGkz(a, b);
         };
         // f = partial phi/partial n
@@ -298,15 +309,19 @@ int main() {
     };
 
 
-    vector<point> rxnTarget;
-    rxnTarget.push_back(point(0., 0., 0.));
+    vector<point> rxnTarget = centers;
 
-    double rxn_ret = 1.0 / 8. / M_PI / sRadius * (1.0 / dE / (1 + k) - 1.0 / dI);
+    std::cout << RXN(coarseSource, rxnTarget, coarseTriangle, coarseWeight, coarseNormalX,
+                     coarseNormalY,
+                     coarseNormalZ,
+                     start) << std::endl;
 
-    std::cout << "rxn energy error: " << (RXN(coarseSource, rxnTarget, coarseTriangle, coarseWeight, coarseNormalX,
-                                              coarseNormalY,
-                                              coarseNormalZ,
-                                              start)(0) - rxn_ret) / rxn_ret << std::endl;
+//    double rxn_ret = 1.0 / 8. / M_PI / radius[0] * (1.0 / dE / (1 + k) - 1.0 / dI);
+//
+//    std::cout << "rxn energy error: " << (RXN(coarseSource, rxnTarget, coarseTriangle, coarseWeight, coarseNormalX,
+//                                              coarseNormalY,
+//                                              coarseNormalZ,
+//                                              start)(0) - rxn_ret) / rxn_ret << std::endl;
 
 
 

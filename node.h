@@ -62,12 +62,33 @@ public:
 class point : public basePoint {
 public:
     int triangleId;
+    int ballId;
 
-    point() : basePoint() { triangleId = -1; }
+    point() : basePoint() {
+        triangleId = -1;
+        ballId = -1;
+    }
 
-    point(double _x, double _y, double _z) : basePoint(_x, _y, _z) { triangleId = -1; }
+    point(double _x, double _y, double _z) : basePoint(_x, _y, _z) {
+        triangleId = -1;
+        ballId = -1;
+    }
 
-    point(double _x, double _y, double _z, int _id) : basePoint(_x, _y, _z) { triangleId = _id; }
+    point(double _x, double _y, double _z, int _id) : basePoint(_x, _y, _z) {
+        triangleId = _id;
+        ballId = -1;
+    }
+
+    point operator-(const point &a) {
+        point p(this->x - a.x, this->y - a.y, this->z - a.z);
+        return p;
+    }
+
+    point operator+(const point &a) {
+        point p(this->x + a.x, this->y + a.y, this->z + a.z);
+        return p;
+    }
+
 
     ~point() {}
 };
