@@ -42,10 +42,13 @@ int main() {
 
 
     centers.push_back(point(0., 0., 0.));
-    centers.push_back(point(1.2, 0., 0.));
+    centers.push_back(point(1.0, 0., 0.));
+    centers.push_back(point(1., 1., 0.));
+    centers.push_back(point(0.0, 1., 0.));
     radius.push_back(1.0);
     radius.push_back(1.0);
-
+    radius.push_back(1.0);
+    radius.push_back(1.0);
 
     moleculeProjection(centers, radius, coarseSource, coarseWeight, coarseNormalX, coarseNormalY, coarseNormalZ,
                        coarseTriangle,
@@ -311,10 +314,13 @@ int main() {
 
     vector<point> rxnTarget = centers;
 
-    std::cout << RXN(coarseSource, rxnTarget, coarseTriangle, coarseWeight, coarseNormalX,
-                     coarseNormalY,
-                     coarseNormalZ,
-                     start) << std::endl;
+    VectorXd result = RXN(coarseSource, rxnTarget, coarseTriangle,
+                          coarseWeight, coarseNormalX, coarseNormalY,
+                          coarseNormalZ, start);
+    for (int i = 0; i < centers.size(); ++i) {
+        std::cout << "energy of atom " << i << " : " << result(i) << std::endl;
+    }
+
 
 //    double rxn_ret = 1.0 / 8. / M_PI / radius[0] * (1.0 / dE / (1 + k) - 1.0 / dI);
 //
