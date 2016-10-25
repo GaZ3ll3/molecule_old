@@ -29,14 +29,10 @@ inline void moleculeProjection(vector<point> &centers, vector<double> &radius,
         }
     }
 
-<<<<<<< HEAD
+
     std::cout << "adjacent list" << std::endl;
     for (int i = 0; i < M; ++i) {
-        std::cout << i << " : ";
-=======
-    for (int i = 0; i < M; ++i) {
         std::cout << "atom " << i << " : ";
->>>>>>> multipole atoms exmaple
         for (int j = 0; j < adjacent[i].size(); ++j) {
             std::cout << adjacent[i][j] << " ";
         }
