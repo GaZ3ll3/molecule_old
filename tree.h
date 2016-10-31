@@ -10,7 +10,6 @@
 #include "node.h"
 #include "measure.h"
 #include <chrono>
-#include "tree.h"
 #include <fstream>
 #include <cassert>
 #include <queue>
