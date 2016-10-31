@@ -1,4 +1,6 @@
-# bbfmm3d
+# molecule old version 
+
+Can still work, but dependence on Eigen is too much for linear algebra, new version get much lighter.
 
 [![Build Status](https://travis-ci.org/GaZ3ll3/bbfmm3d.svg?branch=master)](https://travis-ci.org/GaZ3ll3/bbfmm3d)
 
